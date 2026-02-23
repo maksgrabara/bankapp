@@ -23,11 +23,11 @@ public class UserService {
     }
 
     public boolean userExistsID(String id) {
-        return userRepository.findById(id).isPresent();
+        return userRepository.existsById(id);
     }
 
     public boolean userExistsLogin(String login) {
-        return userRepository.findByLogin(login).isPresent();
+        return userRepository.existsByLogin(login);
     }
 
     public String hashPassword(String pwd) {
@@ -46,7 +46,8 @@ public class UserService {
             return hexString.toString();
         }
 
-        catch (NoSuchAlgorithmException e) throw new RuntimeException("Hashing algorithm not available", e);
+        catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException("Hashing algorithm not available", e);
     }
 
     public boolean userCheckPassword(String pwd, String userID) {

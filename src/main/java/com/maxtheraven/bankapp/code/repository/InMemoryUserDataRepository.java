@@ -1,6 +1,6 @@
 package com.maxtheraven.bankapp.code.repository;
 
-import com.maxtheraven.bankapp.model.UserData;
+import com.maxtheraven.bankapp.code.model.UserData;
 import java.util.*;
 
 public class InMemoryUserDataRepository implements UserDataRepository {
