@@ -1,25 +1,20 @@
 package com.maxtheraven.bankapp.code.service;
 
 import com.maxtheraven.bankapp.code.model.User;
-import com.maxtheraven.bankapp.code.model.UserData;
 import com.maxtheraven.bankapp.code.repository.UserRepository;
-import com.maxtheraven.bankapp.code.repository.UserDataRepository;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.nio.charset.StandardCharsets;
-import java.util.Optional;
 
 import static java.security.MessageDigest.getInstance;
 
 public class UserService {
 
     private final UserRepository userRepository;
-    private final UserDataRepository userDataRepository;
 
-    public UserService(UserRepository userRepository, UserDataRepository userDataRepository) {
+    public UserService(UserRepository userRepository) {
         this.userRepository = userRepository;
-        this.userDataRepository = userDataRepository;
     }
 
     public boolean userExistsID(String id) {
@@ -48,18 +43,19 @@ public class UserService {
 
         catch (NoSuchAlgorithmException e) {
             throw new RuntimeException("Hashing algorithm not available", e);
+        }
     }
 
-    public boolean userCheckPassword(String pwd, String userID) {
+    public boolean userCheckPassword (String pwd, String userID){
 
-        UserData userData = userDataRepository.findByUserId(userID).orElseThrow(() -> new IllegalArgumentException("UserData not found"));
+        User user = userRepository.findById(userID).orElseThrow(() -> new IllegalArgumentException("UserData not found"));
 
         String hashedPwd = hashPassword(pwd);
 
-        return userData.getPassword().equals(hashedPwd);
+        return user.getPassword().equals(hashedPwd);
     }
 
-    public boolean passwordStrength(String pwd) {
+    public boolean passwordStrength (String pwd){
 
         if (pwd.length() < 8) return false;
         if (pwd.chars().anyMatch(Character::isWhitespace)) return false;
@@ -81,4 +77,45 @@ public class UserService {
         return hasUpper && hasLower && hasDigit && hasSpecial;
     }
 
+    public String register(RegisterRequest request) {
+
+        if (request.firstName() == null || request.firstName().isBlank()) {
+            throw new InvalidInputException("First name cannot be empty");
+        }
+
+        if (request.lastName() == null || request.lastName().isBlank()) {
+            throw new InvalidInputException("Last name cannot be empty");
+        }
+
+        if (!passwordValidator.isStrong(request.password())) {
+            throw new WeakPasswordException("Password does not meet strength requirements");
+        }
+
+        String userId = userIdGenerator.generate(request.firstName(), request.lastName());
+        String login = loginGenerator.generate(request.firstName(), request.lastName());
+        String passwordHash = passwordEncoder.encode(request.password());
+
+        User user = new User(
+                userId,
+                login,
+                request.firstName(),
+                request.lastName(),
+                request.birthDate(),
+                passwordHash
+        );
+
+        userRepository.save(user);
+
+        return login;
+    }
+
+    public boolean login(String login, String rawPassword) {
+
+        User user = userRepository.findByLogin(login).orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        return userCheckPassword(rawPassword, user.getUserID());
+    }
+
+
 }
+
